@@ -1,32 +1,13 @@
-"""
-Miniagente corporativo didático para demonstrar Arquitetura Agentic e Tool-Use.
-
-Objetivo pedagógico:
-- Mostrar o loop perceber -> planejar -> chamar ferramenta -> observar -> responder.
-- Demonstrar allowlist de ferramentas, validação de argumentos, rastreabilidade e guardrails.
-- Permitir alternar entre planner determinístico local e planner real via Gemini.
-
-Execução:
-    python src/mini_agent_porto.py
-
-Execução com Gemini:
-    MINI_AGENT_PLANNER=gemini GEMINI_API_KEY=... python src/mini_agent_porto.py
-
-Testes:
-    python -m unittest discover -s tests -v
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import Any, Callable
 import json
 import os
 import re
 import urllib.error
 import urllib.request
 import uuid
+from dataclasses import dataclass, field
+from typing import Any, Callable
 
+from src.mini_agent_porto import ToolCall
 
 GEMINI_ARGUMENT_SCHEMAS = {
     "numero_sinistro": {
@@ -65,12 +46,8 @@ GEMINI_ARGUMENT_SCHEMAS = {
 }
 
 
-# =========================
-# 1. Contratos do agente
-# =========================
-
 @dataclass(frozen=True)
-class ToolCall:
+class TooCall:
     """Pedido de execução de ferramenta feito pelo planejador."""
 
     name: str
@@ -99,11 +76,15 @@ class ToolDefinition:
     def validate(self, arguments: dict[str, Any]) -> None:
         missing = [arg for arg in self.required_args if arg not in arguments]
         if missing:
-            raise ValueError(f"Argumentos obrigatórios ausentes para {self.name}: {', '.join(missing)}")
+            raise ValueError(
+                f"Argumentos obrigatórios ausentes para {self.name}: {', '.join(missing)}"
+            )
 
         extra = sorted(set(arguments) - set(self.required_args))
         if extra:
-            raise ValueError(f"Argumentos não permitidos para {self.name}: {', '.join(extra)}")
+            raise ValueError(
+                f"Argumentos não permitidos para {self.name}: {', '.join(extra)}"
+            )
 
     def to_gemini_function_declaration(self) -> dict[str, Any]:
         return {
@@ -178,9 +159,18 @@ COBERTURAS = {
 }
 
 FRANQUIAS = {
-    "auto": {"valor_referencia": 1500.00, "observacao": "Franquia padrão para colisão parcial."},
-    "residencial": {"valor_referencia": 800.00, "observacao": "Franquia padrão para danos elétricos."},
-    "vida": {"valor_referencia": 0.00, "observacao": "Produto sem franquia na base mockada."},
+    "auto": {
+        "valor_referencia": 1500.00,
+        "observacao": "Franquia padrão para colisão parcial.",
+    },
+    "residencial": {
+        "valor_referencia": 800.00,
+        "observacao": "Franquia padrão para danos elétricos.",
+    },
+    "vida": {
+        "valor_referencia": 0.00,
+        "observacao": "Produto sem franquia na base mockada.",
+    },
 }
 
 SLA_BASE_HORAS = {
@@ -195,10 +185,10 @@ SLA_BASE_HORAS = {
     ("baixa", "email"): 48,
 }
 
-
 # =========================
 # 3. Ferramentas do domínio
 # =========================
+
 
 def consultar_status_sinistro(numero_sinistro: str) -> dict[str, Any]:
     """Consulta status de um sinistro em base mockada."""
@@ -342,55 +332,6 @@ def is_blocked_by_guardrail(user_input: str) -> str | None:
     return None
 
 
-# =========================
-# 5. Planejador determinístico
-# =========================
-
-class DeterministicPlanner:
-    """
-    Simula a etapa em que um LLM escolheria ferramentas.
-
-    Em produção, esta decisão viria de um modelo com function calling.
-    Aqui mantemos determinístico para aula, testes e execução sem API key.
-    """
-
-    def plan(self, user_input: str) -> list[ToolCall]:
-        calls: list[ToolCall] = []
-        texto_norm = normalizar_texto(user_input)
-
-        numero_sinistro = detectar_sinistro(user_input)
-        tipo_seguro = detectar_tipo_seguro(user_input)
-        canal = detectar_canal(user_input)
-        prioridade = detectar_prioridade(user_input)
-
-        if numero_sinistro and any(p in texto_norm for p in ["status", "sinistro", "andamento"]):
-            calls.append(ToolCall("consultar_status_sinistro", {"numero_sinistro": numero_sinistro}))
-
-        if tipo_seguro and any(p in texto_norm for p in ["cobertura", "cobre", "produto"]):
-            calls.append(ToolCall("consultar_cobertura_produto", {"tipo_seguro": tipo_seguro}))
-
-        if tipo_seguro and "franquia" in texto_norm:
-            calls.append(ToolCall("consultar_franquia", {"tipo_seguro": tipo_seguro}))
-
-        if any(p in texto_norm for p in ["sla", "prazo", "tempo de resposta"]):
-            calls.append(ToolCall("calcular_prazo_sla", {"criticidade": prioridade, "canal": canal}))
-
-        if any(p in texto_norm for p in ["abrir ticket", "criar ticket", "registrar chamado"]):
-            area = "sinistros" if numero_sinistro else "atendimento"
-            calls.append(
-                ToolCall(
-                    "abrir_ticket",
-                    {
-                        "area": area,
-                        "resumo": user_input[:180],
-                        "prioridade": prioridade,
-                    },
-                )
-            )
-
-        return calls
-
-
 class GeminiPlanner:
     """Planejador real usando Gemini function calling via REST API."""
 
@@ -415,7 +356,6 @@ class GeminiPlanner:
                 "parts": [
                     {
                         "text": (
-                            "Você é o planner de um miniagente corporativo didático. "
                             "Decida quais ferramentas chamar para atender a solicitação. "
                             "Se o usuário pedir múltiplas ações, retorne uma function call "
                             "para cada ação independente. "
@@ -463,11 +403,15 @@ class GeminiPlanner:
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request, timeout=self._timeout_seconds
+            ) as response:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             details = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Erro HTTP ao chamar Gemini: {exc.code} - {details}") from exc
+            raise RuntimeError(
+                f"Erro HTTP ao chamar Gemini: {exc.code} - {details}"
+            ) from exc
         except urllib.error.URLError as exc:
             raise RuntimeError(f"Falha de rede ao chamar Gemini: {exc.reason}") from exc
 
@@ -497,6 +441,7 @@ class GeminiPlanner:
 # 6. Executor de ferramentas
 # =========================
 
+
 class ToolExecutor:
     def __init__(self, tools: list[ToolDefinition]) -> None:
         self._tools = {tool.name: tool for tool in tools}
@@ -508,7 +453,9 @@ class ToolExecutor:
     def execute(self, call: ToolCall) -> ToolResult:
         tool = self._tools.get(call.name)
         if tool is None:
-            return ToolResult(name=call.name, ok=False, data={}, error="Ferramenta não permitida.")
+            return ToolResult(
+                name=call.name, ok=False, data={}, error="Ferramenta não permitida."
+            )
 
         try:
             tool.validate(call.arguments)
@@ -521,6 +468,7 @@ class ToolExecutor:
 # =========================
 # 7. Agente
 # =========================
+
 
 class PortoMiniAgent:
     def __init__(self, planner: Any, executor: ToolExecutor) -> None:
@@ -565,7 +513,9 @@ class PortoMiniAgent:
             if formatted_result:
                 parts.append(formatted_result)
 
-        parts.append("Evidência: todas as ferramentas chamadas foram registradas no trace.")
+        parts.append(
+            "Evidência: todas as ferramentas chamadas foram registradas no trace."
+        )
         return "\n".join(parts)
 
     def _format_tool_result(self, result: ToolResult) -> str | None:
@@ -595,7 +545,9 @@ class PortoMiniAgent:
         if not data.get("encontrado"):
             return f"- {data['mensagem']}"
 
-        return f"- Coberturas de {data['tipo_seguro']}: {', '.join(data['coberturas'])}."
+        return (
+            f"- Coberturas de {data['tipo_seguro']}: {', '.join(data['coberturas'])}."
+        )
 
     def _format_franquia(self, data: dict[str, Any]) -> str:
         if not data.get("encontrado"):
@@ -680,17 +632,10 @@ def load_env_file(path: str = ".env") -> None:
 
 def build_agent(planner_mode: str | None = None) -> PortoMiniAgent:
     tools = build_tools()
-    default_mode = "gemini" if os.getenv("GEMINI_API_KEY") else "deterministic"
-    mode = normalizar_texto(planner_mode or os.getenv("MINI_AGENT_PLANNER", default_mode))
-
-    if mode == "gemini":
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        planner = GeminiPlanner(tools=tools, api_key=os.getenv("GEMINI_API_KEY", ""), model=model)
-    elif mode in {"deterministic", "local"}:
-        planner = DeterministicPlanner()
-    else:
-        raise ValueError("MINI_AGENT_PLANNER deve ser 'deterministic' ou 'gemini'.")
-
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    planner = GeminiPlanner(
+        tools=tools, api_key=os.getenv("GEMINI_API_KEY", ""), model=model
+    )
     return PortoMiniAgent(planner, ToolExecutor(tools))
 
 

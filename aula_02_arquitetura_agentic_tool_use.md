@@ -932,59 +932,65 @@ class PortoMiniAgent:
     def _compose_answer(self, trace: AgentTrace) -> str:
         parts = ["Resultado do miniagente:"]
         for result in trace.tool_results:
-            if not result.ok:
-                parts.append(f"- {result.name}: erro - {result.error}")
-                continue
-
-            if result.name == "consultar_status_sinistro":
-                data = result.data
-                if data.get("encontrado"):
-                    parts.append(
-                        f"- Sinistro {data['numero_sinistro']}: status '{data['status']}', "
-                        f"etapa '{data['etapa']}', previsão {data['previsao']}."
-                    )
-                else:
-                    parts.append(f"- {data['mensagem']}")
-
-            elif result.name == "consultar_cobertura_produto":
-                data = result.data
-                if data.get("encontrado"):
-                    parts.append(
-                        f"- Coberturas de {data['tipo_seguro']}: "
-                        f"{', '.join(data['coberturas'])}."
-                    )
-                else:
-                    parts.append(f"- {data['mensagem']}")
-
-            elif result.name == "consultar_franquia":
-                data = result.data
-                if data.get("encontrado"):
-                    parts.append(
-                        f"- Franquia de referência para {data['tipo_seguro']}: "
-                        f"R$ {data['valor_referencia']:.2f}. {data['observacao']}"
-                    )
-                else:
-                    parts.append(f"- {data['mensagem']}")
-
-            elif result.name == "calcular_prazo_sla":
-                data = result.data
-                if data.get("calculado"):
-                    parts.append(
-                        f"- SLA estimado: {data['sla_legivel']} "
-                        f"para criticidade {data['criticidade']} via {data['canal']}."
-                    )
-                else:
-                    parts.append(f"- {data['mensagem']}")
-
-            elif result.name == "abrir_ticket":
-                data = result.data
-                parts.append(
-                    f"- Ticket criado: {data['protocolo']} | área: {data['area']} | "
-                    f"prioridade: {data['prioridade']}."
-                )
+            formatted_result = self._format_tool_result(result)
+            if formatted_result:
+                parts.append(formatted_result)
 
         parts.append("Evidência: todas as ferramentas chamadas foram registradas no trace.")
         return "\n".join(parts)
+
+    def _format_tool_result(self, result: ToolResult) -> str | None:
+        if not result.ok:
+            return f"- {result.name}: erro - {result.error}"
+
+        formatters = {
+            "consultar_status_sinistro": self._format_status_sinistro,
+            "consultar_cobertura_produto": self._format_cobertura_produto,
+            "consultar_franquia": self._format_franquia,
+            "calcular_prazo_sla": self._format_prazo_sla,
+            "abrir_ticket": self._format_ticket,
+        }
+        formatter = formatters.get(result.name)
+        return formatter(result.data) if formatter else None
+
+    def _format_status_sinistro(self, data: dict[str, Any]) -> str:
+        if not data.get("encontrado"):
+            return f"- {data['mensagem']}"
+
+        return (
+            f"- Sinistro {data['numero_sinistro']}: status '{data['status']}', "
+            f"etapa '{data['etapa']}', previsão {data['previsao']}."
+        )
+
+    def _format_cobertura_produto(self, data: dict[str, Any]) -> str:
+        if not data.get("encontrado"):
+            return f"- {data['mensagem']}"
+
+        return f"- Coberturas de {data['tipo_seguro']}: {', '.join(data['coberturas'])}."
+
+    def _format_franquia(self, data: dict[str, Any]) -> str:
+        if not data.get("encontrado"):
+            return f"- {data['mensagem']}"
+
+        return (
+            f"- Franquia de referência para {data['tipo_seguro']}: "
+            f"R$ {data['valor_referencia']:.2f}. {data['observacao']}"
+        )
+
+    def _format_prazo_sla(self, data: dict[str, Any]) -> str:
+        if not data.get("calculado"):
+            return f"- {data['mensagem']}"
+
+        return (
+            f"- SLA estimado: {data['sla_legivel']} "
+            f"para criticidade {data['criticidade']} via {data['canal']}."
+        )
+
+    def _format_ticket(self, data: dict[str, Any]) -> str:
+        return (
+            f"- Ticket criado: {data['protocolo']} | área: {data['area']} | "
+            f"prioridade: {data['prioridade']}."
+        )
 
 
 def build_agent() -> PortoMiniAgent:

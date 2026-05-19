@@ -1,6 +1,7 @@
 import unittest
 
 from src.mini_agent_porto import (
+    GeminiPlanner,
     ToolCall,
     ToolDefinition,
     ToolExecutor,
@@ -10,6 +11,7 @@ from src.mini_agent_porto import (
     consultar_cobertura_produto,
     consultar_franquia,
     consultar_status_sinistro,
+    build_tools,
 )
 
 
@@ -33,6 +35,12 @@ class ToolTests(unittest.TestCase):
     def test_calcular_prazo_sla(self):
         result = calcular_prazo_sla("alta", "whatsapp")
         self.assertTrue(result["calculado"])
+        self.assertEqual(result["sla_horas"], 4)
+
+    def test_calcular_prazo_sla_normaliza_urgente(self):
+        result = calcular_prazo_sla("urgente", "whatsapp")
+        self.assertTrue(result["calculado"])
+        self.assertEqual(result["criticidade"], "alta")
         self.assertEqual(result["sla_horas"], 4)
 
     def test_abrir_ticket(self):
@@ -64,9 +72,50 @@ class ExecutorTests(unittest.TestCase):
         self.assertIn("Argumentos obrigatórios ausentes", result.error)
 
 
+class GeminiPlannerTests(unittest.TestCase):
+    def test_planner_gemini_extrai_function_calls_da_resposta(self):
+        planner = GeminiPlanner(build_tools(), api_key="fake-key")
+        response = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "functionCall": {
+                                    "name": "consultar_status_sinistro",
+                                    "args": {"numero_sinistro": "SIN-1001"},
+                                }
+                            },
+                            {
+                                "functionCall": {
+                                    "name": "calcular_prazo_sla",
+                                    "args": {"criticidade": "alta", "canal": "whatsapp"},
+                                }
+                            },
+                        ]
+                    }
+                }
+            ]
+        }
+
+        calls = planner._extract_tool_calls(response)
+
+        self.assertEqual(
+            calls,
+            [
+                ToolCall("consultar_status_sinistro", {"numero_sinistro": "SIN-1001"}),
+                ToolCall("calcular_prazo_sla", {"criticidade": "alta", "canal": "whatsapp"}),
+            ],
+        )
+
+    def test_planner_gemini_sem_candidates_retorna_lista_vazia(self):
+        planner = GeminiPlanner(build_tools(), api_key="fake-key")
+        self.assertEqual(planner._extract_tool_calls({}), [])
+
+
 class AgentTests(unittest.TestCase):
     def test_agente_executa_fluxo_multistep(self):
-        agent = build_agent()
+        agent = build_agent(planner_mode="deterministic")
         trace = agent.run("Qual o status do sinistro SIN-1001? Calcule SLA urgente via whatsapp e abrir ticket.")
         self.assertFalse(trace.blocked)
         self.assertEqual([call.name for call in trace.planned_calls], [
@@ -80,7 +129,7 @@ class AgentTests(unittest.TestCase):
         self.assertIn("Ticket criado", trace.final_answer)
 
     def test_agente_usa_ferramenta_de_cobertura(self):
-        agent = build_agent()
+        agent = build_agent(planner_mode="deterministic")
         trace = agent.run("O seguro auto cobre guincho?")
         self.assertFalse(trace.blocked)
         self.assertEqual(len(trace.planned_calls), 1)
@@ -88,7 +137,7 @@ class AgentTests(unittest.TestCase):
         self.assertIn("guincho", trace.final_answer)
 
     def test_agente_usa_ferramenta_de_franquia(self):
-        agent = build_agent()
+        agent = build_agent(planner_mode="deterministic")
         trace = agent.run("Qual a franquia do seguro auto?")
         self.assertFalse(trace.blocked)
         self.assertEqual(len(trace.planned_calls), 1)
@@ -96,14 +145,14 @@ class AgentTests(unittest.TestCase):
         self.assertIn("Franquia de referência", trace.final_answer)
 
     def test_agente_bloqueia_dado_sensivel(self):
-        agent = build_agent()
+        agent = build_agent(planner_mode="deterministic")
         trace = agent.run("Quero saber o CPF do cliente do sinistro SIN-1001")
         self.assertTrue(trace.blocked)
         self.assertEqual(trace.planned_calls, [])
         self.assertIn("dado sensível", trace.final_answer)
 
     def test_agente_sem_intencao_de_tool(self):
-        agent = build_agent()
+        agent = build_agent(planner_mode="deterministic")
         trace = agent.run("Bom dia")
         self.assertFalse(trace.blocked)
         self.assertEqual(trace.planned_calls, [])
