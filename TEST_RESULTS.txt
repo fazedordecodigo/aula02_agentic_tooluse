@@ -1,0 +1,182 @@
+$ python -m unittest discover -s tests -v
+test_agente_bloqueia_dado_sensivel (test_mini_agent_porto.AgentTests.test_agente_bloqueia_dado_sensivel) ... ok
+test_agente_executa_fluxo_multistep (test_mini_agent_porto.AgentTests.test_agente_executa_fluxo_multistep) ... ok
+test_agente_sem_intencao_de_tool (test_mini_agent_porto.AgentTests.test_agente_sem_intencao_de_tool) ... ok
+test_agente_usa_ferramenta_de_cobertura (test_mini_agent_porto.AgentTests.test_agente_usa_ferramenta_de_cobertura) ... ok
+test_agente_usa_ferramenta_de_franquia (test_mini_agent_porto.AgentTests.test_agente_usa_ferramenta_de_franquia) ... ok
+test_executor_bloqueia_ferramenta_fora_da_allowlist (test_mini_agent_porto.ExecutorTests.test_executor_bloqueia_ferramenta_fora_da_allowlist) ... ok
+test_executor_valida_argumentos_obrigatorios (test_mini_agent_porto.ExecutorTests.test_executor_valida_argumentos_obrigatorios) ... ok
+test_abrir_ticket (test_mini_agent_porto.ToolTests.test_abrir_ticket) ... ok
+test_calcular_prazo_sla (test_mini_agent_porto.ToolTests.test_calcular_prazo_sla) ... ok
+test_consultar_cobertura_auto (test_mini_agent_porto.ToolTests.test_consultar_cobertura_auto) ... ok
+test_consultar_franquia_auto (test_mini_agent_porto.ToolTests.test_consultar_franquia_auto) ... ok
+test_consultar_status_sinistro_encontrado (test_mini_agent_porto.ToolTests.test_consultar_status_sinistro_encontrado) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.005s
+
+OK
+
+$ python src/mini_agent_porto.py
+================================================================================
+Entrada: Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket.
+Resultado do miniagente:
+- Sinistro SIN-1001: status 'vistoria agendada', etapa 'aguardando vistoria', previsão 2 dias úteis.
+- SLA estimado: 4 horas úteis para criticidade alta via whatsapp.
+- Ticket criado: TCK-EF012CC4 | área: sinistros | prioridade: alta.
+Evidência: todas as ferramentas chamadas foram registradas no trace.
+
+Trace JSON:
+{
+  "user_input": "Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket.",
+  "blocked": false,
+  "reason": null,
+  "planned_calls": [
+    {
+      "name": "consultar_status_sinistro",
+      "arguments": {
+        "numero_sinistro": "SIN-1001"
+      }
+    },
+    {
+      "name": "calcular_prazo_sla",
+      "arguments": {
+        "criticidade": "alta",
+        "canal": "whatsapp"
+      }
+    },
+    {
+      "name": "abrir_ticket",
+      "arguments": {
+        "area": "sinistros",
+        "resumo": "Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket.",
+        "prioridade": "alta"
+      }
+    }
+  ],
+  "tool_results": [
+    {
+      "name": "consultar_status_sinistro",
+      "ok": true,
+      "data": {
+        "encontrado": true,
+        "numero_sinistro": "SIN-1001",
+        "produto": "auto",
+        "status": "vistoria agendada",
+        "etapa": "aguardando vistoria",
+        "previsao": "2 dias úteis"
+      },
+      "error": null
+    },
+    {
+      "name": "calcular_prazo_sla",
+      "ok": true,
+      "data": {
+        "calculado": true,
+        "criticidade": "alta",
+        "canal": "whatsapp",
+        "sla_horas": 4,
+        "sla_legivel": "4 horas úteis"
+      },
+      "error": null
+    },
+    {
+      "name": "abrir_ticket",
+      "ok": true,
+      "data": {
+        "ticket_criado": true,
+        "protocolo": "TCK-EF012CC4",
+        "area": "sinistros",
+        "prioridade": "alta",
+        "resumo": "Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket."
+      },
+      "error": null
+    }
+  ],
+  "final_answer": "Resultado do miniagente:\n- Sinistro SIN-1001: status 'vistoria agendada', etapa 'aguardando vistoria', previsão 2 dias úteis.\n- SLA estimado: 4 horas úteis para criticidade alta via whatsapp.\n- Ticket criado: TCK-EF012CC4 | área: sinistros | prioridade: alta.\nEvidência: todas as ferramentas chamadas foram registradas no trace."
+}
+================================================================================
+Entrada: O seguro auto cobre guincho?
+Resultado do miniagente:
+- Coberturas de auto: colisão, roubo e furto, guincho, terceiros.
+Evidência: todas as ferramentas chamadas foram registradas no trace.
+
+Trace JSON:
+{
+  "user_input": "O seguro auto cobre guincho?",
+  "blocked": false,
+  "reason": null,
+  "planned_calls": [
+    {
+      "name": "consultar_cobertura_produto",
+      "arguments": {
+        "tipo_seguro": "auto"
+      }
+    }
+  ],
+  "tool_results": [
+    {
+      "name": "consultar_cobertura_produto",
+      "ok": true,
+      "data": {
+        "encontrado": true,
+        "tipo_seguro": "auto",
+        "coberturas": [
+          "colisão",
+          "roubo e furto",
+          "guincho",
+          "terceiros"
+        ]
+      },
+      "error": null
+    }
+  ],
+  "final_answer": "Resultado do miniagente:\n- Coberturas de auto: colisão, roubo e furto, guincho, terceiros.\nEvidência: todas as ferramentas chamadas foram registradas no trace."
+}
+================================================================================
+Entrada: Qual a franquia do seguro auto?
+Resultado do miniagente:
+- Franquia de referência para auto: R$ 1500.00. Franquia padrão para colisão parcial.
+Evidência: todas as ferramentas chamadas foram registradas no trace.
+
+Trace JSON:
+{
+  "user_input": "Qual a franquia do seguro auto?",
+  "blocked": false,
+  "reason": null,
+  "planned_calls": [
+    {
+      "name": "consultar_franquia",
+      "arguments": {
+        "tipo_seguro": "auto"
+      }
+    }
+  ],
+  "tool_results": [
+    {
+      "name": "consultar_franquia",
+      "ok": true,
+      "data": {
+        "encontrado": true,
+        "tipo_seguro": "auto",
+        "valor_referencia": 1500.0,
+        "observacao": "Franquia padrão para colisão parcial."
+      },
+      "error": null
+    }
+  ],
+  "final_answer": "Resultado do miniagente:\n- Franquia de referência para auto: R$ 1500.00. Franquia padrão para colisão parcial.\nEvidência: todas as ferramentas chamadas foram registradas no trace."
+}
+================================================================================
+Entrada: Quero saber o CPF do cliente do sinistro SIN-1001.
+Não posso atender essa solicitação porque ela envolve dado sensível. Reformule a pergunta sem CPF, senha, cartão ou dados pessoais.
+
+Trace JSON:
+{
+  "user_input": "Quero saber o CPF do cliente do sinistro SIN-1001.",
+  "blocked": true,
+  "reason": "A solicitação parece envolver dado sensível. O agente não deve expor CPF, senha, cartão ou dados pessoais.",
+  "planned_calls": [],
+  "tool_results": [],
+  "final_answer": "Não posso atender essa solicitação porque ela envolve dado sensível. Reformule a pergunta sem CPF, senha, cartão ou dados pessoais."
+}
