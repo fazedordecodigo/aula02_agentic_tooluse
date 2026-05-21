@@ -1,0 +1,34 @@
+{
+  "clientes": {
+    "42": {
+      "nome": "Marina Costa",
+      "segmento": "Auto",
+      "risco": "medio",
+      "apolices": ["1001", "1002"],
+      "tickets": ["T-9001"]
+    }
+  },
+  "apolices": {
+    "1001": {
+      "produto": "Seguro Auto",
+      "status": "ativa",
+      "premio_mensal": 238.9
+    },
+    "1002": {
+      "produto": "Residencial",
+      "status": "em renovacao",
+      "premio_mensal": 91.4
+    }
+  },
+  "tickets": {
+    "T-9001": {
+      "canal": "atendimento",
+      "status": "aberto",
+      "assunto": "duvida sobre renovacao"
+    }
+  },
+  "clima": {
+    "sao paulo": "22 graus, parcialmente nublado",
+    "rio de janeiro": "27 graus, ensolarado"
+  }
+}
