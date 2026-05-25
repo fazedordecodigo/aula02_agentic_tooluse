@@ -1,0 +1,47 @@
+C4Component
+    title C4 Componentes - Aula 4 Guardrails Google Agent
+
+    Person(user, "Instrutor ou aluno", "Executa a demo pela linha de comando e envia perguntas sobre guardrails")
+
+    System_Ext(gemini, "Google Gemini", "Modelo LLM acessado via langchain-google-genai")
+    System_Ext(env, "Variaveis de ambiente", "GOOGLE_API_KEY, GOOGLE_MODEL e configuracao opcional de Vertex AI")
+
+    Container_Boundary(app, "aula04_guardrails_agent") {
+        Component(cli, "cli.py", "Python argparse", "Entrada da demo; recebe pergunta e modelo opcional")
+        Component(facade, "GuardrailsAgentFacade", "Python + LangGraph", "Facade publica que esconde a orquestracao do grafo")
+        Component(graph, "StateGraph", "LangGraph", "Coordena estado, rotas condicionais e limite de chamadas ao LLM")
+        Component(input_guardrail, "input_guardrail", "Regra deterministica", "Bloqueia prompt injection, exfiltracao de segredo e pedidos fora do escopo")
+        Component(llm_node, "llm", "LangChain ChatModel", "Invoca Gemini com system prompt e tools vinculadas")
+        Component(tools_node, "tools", "LangChain tools", "Executa somente ferramentas allowlisted e registra eventos")
+        Component(output_guardrail, "output_guardrail", "Regra deterministica", "Bloqueia respostas com possiveis segredos, CPF ou cartao")
+        Component(result, "AgentResult", "Dataclass JSON", "Resposta estavel com answer, blocked, reason, trace e tool_events")
+        Component(guardrails, "guardrails.py", "Regex + allowlist de topicos", "Implementa check_input, check_output e resposta segura")
+        Component(tools, "tools.py", "Ferramentas read-only", "Explica padroes e cria checklists de guardrails")
+        Component(llm_factory, "google_llm.py", "Factory Gemini", "Configura modelo, retries, temperatura e safety settings")
+    }
+
+    Rel(user, cli, "Executa", "python -m aula04_guardrails_agent.cli")
+    Rel(cli, facade, "Cria facade e chama ask(question)")
+    Rel(facade, graph, "Invoca grafo compilado")
+    Rel(graph, input_guardrail, "Primeiro passo")
+    Rel(input_guardrail, guardrails, "Usa check_input(user_input)")
+    Rel(input_guardrail, llm_node, "Se entrada permitida")
+    Rel(input_guardrail, result, "Se bloqueada, retorna SAFE_BLOCKED_ANSWER")
+    Rel(llm_node, llm_factory, "Usa modelo criado por with_google")
+    Rel(llm_factory, env, "Le configuracao")
+    Rel(llm_factory, gemini, "Instancia ChatGoogleGenerativeAI")
+    Rel(llm_node, gemini, "Envia system prompt + mensagens", "API Google")
+    Rel(llm_node, tools_node, "Roteia quando ha tool_calls")
+    Rel(tools_node, tools, "Executa tool allowlisted")
+    Rel(tools_node, llm_node, "Devolve ToolMessage para nova chamada")
+    Rel(llm_node, output_guardrail, "Quando nao ha tool_calls")
+    Rel(output_guardrail, guardrails, "Usa check_output(answer)")
+    Rel(output_guardrail, result, "Monta resposta final ou bloqueio")
+    Rel(result, cli, "Serializa JSON")
+    Rel(cli, user, "Imprime resultado")
+
+    UpdateElementStyle(input_guardrail, $bgColor="#116466", $fontColor="#ffffff", $borderColor="#0b3d3e")
+    UpdateElementStyle(output_guardrail, $bgColor="#116466", $fontColor="#ffffff", $borderColor="#0b3d3e")
+    UpdateElementStyle(gemini, $bgColor="#f4a261", $fontColor="#1f2933", $borderColor="#b45309")
+    UpdateRelStyle(input_guardrail, result, $textColor="#b91c1c", $lineColor="#b91c1c")
+    UpdateRelStyle(output_guardrail, result, $textColor="#b91c1c", $lineColor="#b91c1c")
