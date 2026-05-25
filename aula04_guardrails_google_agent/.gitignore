@@ -1,0 +1,44 @@
+# Ambiente virtual
+source/
+.venv/
+venv/
+env/
+
+.DS_Store
+
+# Bytecode e caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Ferramentas e testes
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build / distribuição
+build/
+dist/
+site/
+*.egg-info/
+*.egg
+
+# Logs e relatórios
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs e sistemas operacionais
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
