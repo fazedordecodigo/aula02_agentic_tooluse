@@ -16,13 +16,13 @@ from langchain_core.messages import (
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from aula04_guardrails_agent.google_llm import build_google_llm
-from aula04_guardrails_agent.guardrails import (
+from Aula04.guardrails_google_agent.src.aula04_guardrails_agent.google_llm import build_google_llm
+from Aula04.guardrails_google_agent.src.aula04_guardrails_agent.guardrails import (
     SAFE_BLOCKED_ANSWER,
     check_input,
     check_output,
 )
-from aula04_guardrails_agent.tools import get_tools
+from Aula04.guardrails_google_agent.src.aula04_guardrails_agent.tools import get_tools
 
 SYSTEM_PROMPT = """
 Você é um agente didático da Aula 4: Segurança aplicada a soluções com IA.

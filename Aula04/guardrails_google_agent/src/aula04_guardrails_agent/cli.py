@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from aula04_guardrails_agent.facade import GuardrailsAgentFacade
+from Aula04.guardrails_google_agent.src.aula04_guardrails_agent.facade import GuardrailsAgentFacade
 
 
 def main() -> None:
