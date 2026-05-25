@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aula04-guardrails-google-agent"
+version = "0.1.0"
+description = "Boilerplate simples de agente com LangChain, LangGraph e Google Gemini para demo de guardrails."
+requires-python = ">=3.10"
+dependencies = [
+    "langchain>=1.0.0",
+    "langgraph>=1.0.0",
+    "langchain-google-genai>=4.0.0",
+    "typing-extensions>=4.12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
