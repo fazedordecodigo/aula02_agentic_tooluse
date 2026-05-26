@@ -1,0 +1,157 @@
+$ PYTHONPATH=src python -m unittest discover -s tests -v
+test_langgraph_graph_runs_when_dependency_exists (test_optional_imports.OptionalLangGraphTests.test_langgraph_graph_runs_when_dependency_exists) ... skipped 'langgraph não instalado neste ambiente'
+test_langgraph_module_is_importable_without_langgraph_installed (test_optional_imports.OptionalLangGraphTests.test_langgraph_module_is_importable_without_langgraph_installed) ... ok
+test_apolice_rag_cobertura_guincho (test_pure_agent.AgentTests.test_apolice_rag_cobertura_guincho) ... ok
+test_fraude_com_customer_id_responde (test_pure_agent.AgentTests.test_fraude_com_customer_id_responde) ... ok
+test_fraude_sem_customer_id_escala (test_pure_agent.AgentTests.test_fraude_sem_customer_id_escala) ... ok
+test_guardrail_bloqueia_dados_sensiveis (test_pure_agent.AgentTests.test_guardrail_bloqueia_dados_sensiveis) ... ok
+test_incrementa_exercicio_anterior_com_rag (test_pure_agent.AgentTests.test_incrementa_exercicio_anterior_com_rag) ... ok
+test_retrieve_returns_metadata_artifacts (test_pure_agent.RetrievalTests.test_retrieve_returns_metadata_artifacts) ... ok
+test_retrieve_sla_whatsapp (test_pure_agent.RetrievalTests.test_retrieve_sla_whatsapp) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.004s
+
+OK (skipped=1)
+
+$ PYTHONPATH=src python -m porto_rag_agent.main
+========================================================================================
+Entrada: Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket.
+Resposta fundamentada por RAG:
+- Fonte KB-SLA-001 (Matriz didática de SLA por canal): Guia operacional de SLA. Para solicitações urgentes de alta criticidade via WhatsApp, o SLA didático é 4 horas úteis. Via telefone, 6 horas úteis. Via e-mail, 8 horas úteis. A resposta deve informar que se trata de estim...
+- Fonte KB-SINISTRO-1001 (Procedimento didático de sinistro): Procedimento de sinistro. Para SIN-1001, a base mockada indica status vistoria agendada, etapa aguardando vistoria e previsão de 2 dias úteis. Para perguntas de andamento, o agente deve consultar ferramenta de sinistro e...
+
+- Sinistro SIN-1001: status 'vistoria agendada', etapa 'aguardando vistoria', previsão 2 dias úteis.
+- SLA estimado: 4 horas úteis para criticidade alta via whatsapp.
+- Ticket criado: TCK-ED48825D | área: sinistros | prioridade: alta.
+Fontes: KB-SLA-001, KB-SINISTRO-1001.
+Observação: conteúdo recuperado foi tratado como dado de apoio; decisões operacionais vieram de ferramentas mockadas.
+
+Trace:
+{
+  "user_input": "Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket.",
+  "customer_id": "C001",
+  "route": "sinistro_rag",
+  "confidence": 0.75,
+  "blocked": false,
+  "needs_human": false,
+  "question_for_retrieval": "matriz SLA alta whatsapp sinistro",
+  "retrieved_context": {
+    "query": "matriz SLA alta whatsapp sinistro",
+    "documents": [
+      {
+        "page_content": "Guia operacional de SLA. Para solicitações urgentes de alta criticidade via WhatsApp, o SLA didático é 4 horas úteis. Via telefone, 6 horas úteis. Via e-mail, 8 horas úteis. A resposta deve informar que se trata de estimativa.",
+        "metadata": {
+          "source_id": "KB-SLA-001",
+          "title": "Matriz didática de SLA por canal",
+          "domain": "sla",
+          "version": "2026-05"
+        }
+      },
+      {
+        "page_content": "Procedimento de sinistro. Para SIN-1001, a base mockada indica status vistoria agendada, etapa aguardando vistoria e previsão de 2 dias úteis. Para perguntas de andamento, o agente deve consultar ferramenta de sinistro e usar RAG apenas como apoio contextual para explicar próximos passos.",
+        "metadata": {
+          "source_id": "KB-SINISTRO-1001",
+          "title": "Procedimento didático de sinistro",
+          "domain": "sinistro",
+          "version": "2026-05"
+        }
+      }
+    ],
+    "serialized_context": "<doc source_id=\"KB-SLA-001\" title=\"Matriz didática de SLA por canal\">\nGuia operacional de SLA. Para solicitações urgentes de alta criticidade via WhatsApp, o SLA didático é 4 horas úteis. Via telefone, 6 horas úteis. Via e-mail, 8 horas úteis. A resposta deve informar que se trata de estimativa.\n</doc>\n\n<doc source_id=\"KB-SINISTRO-1001\" title=\"Procedimento didático de sinistro\">\nProcedimento de sinistro. Para SIN-1001, a base mockada indica status vistoria agendada, etapa aguardando vistoria e previsão de 2 dias úteis. Para perguntas de andamento, o agente deve consultar ferramenta de sinistro e usar RAG apenas como apoio contextual para explicar próximos passos.\n</doc>",
+    "scores": [
+      0.2349,
+      0.1155
+    ]
+  },
+  "tool_results": [
+    {
+      "name": "consultar_status_sinistro",
+      "ok": true,
+      "data": {
+        "numero_sinistro": "SIN-1001",
+        "produto": "auto",
+        "status": "vistoria agendada",
+        "etapa": "aguardando vistoria",
+        "previsao": "2 dias úteis"
+      },
+      "error": null
+    },
+    {
+      "name": "calcular_prazo_sla",
+      "ok": true,
+      "data": {
+        "criticidade": "alta",
+        "canal": "whatsapp",
+        "sla_horas": 4,
+        "sla_legivel": "4 horas úteis"
+      },
+      "error": null
+    },
+    {
+      "name": "abrir_ticket",
+      "ok": true,
+      "data": {
+        "ticket_criado": true,
+        "protocolo": "TCK-ED48825D",
+        "area": "sinistros",
+        "prioridade": "alta",
+        "resumo": "Qual o status do sinistro SIN-1001? Calcule o SLA urgente via whatsapp e abrir ticket."
+      },
+      "error": null
+    }
+  ],
+  "final_answer": "Resposta fundamentada por RAG:\n- Fonte KB-SLA-001 (Matriz didática de SLA por canal): Guia operacional de SLA. Para solicitações urgentes de alta criticidade via WhatsApp, o SLA didático é 4 horas úteis. Via telefone, 6 horas úteis. Via e-mail, 8 horas úteis. A resposta deve informar que se trata de estim...\n- Fonte KB-SINISTRO-1001 (Procedimento didático de sinistro): Procedimento de sinistro. Para SIN-1001, a base mockada indica status vistoria agendada, etapa aguardando vistoria e previsão de 2 dias úteis. Para perguntas de andamento, o agente deve consultar ferramenta de sinistro e...\n\n- Sinistro SIN-1001: status 'vistoria agendada', etapa 'aguardando vistoria', previsão 2 dias úteis.\n- SLA estimado: 4 horas úteis para criticidade alta via whatsapp.\n- Ticket criado: TCK-ED48825D | área: sinistros | prioridade: alta.\nFontes: KB-SLA-001, KB-SINISTRO-1001.\nObservação: conteúdo recuperado foi tratado como dado de apoio; decisões operacionais vieram de ferramentas mockadas.",
+  "sources": [
+    "KB-SLA-001",
+    "KB-SINISTRO-1001"
+  ],
+  "trace": [
+    "guardrail=ok",
+    "route=sinistro_rag; confidence=0.75; scores={'fraude_rag': 0, 'sinistro_rag': 3, 'apolice_rag': 0, 'geral_rag': 1}",
+    "retrieved=2; sources=['KB-SLA-001', 'KB-SINISTRO-1001']; scores=[0.2349, 0.1155]",
+    "tools=consultar_status_sinistro,calcular_prazo_sla,abrir_ticket",
+    "verification=ok"
+  ]
+}
+========================================================================================
+Entrada: O seguro auto cobre guincho?
+Resposta fundamentada por RAG:
+- Fonte KB-AUTO-COBERTURA-001 (Guia de cobertura auto): Guia de cobertura auto. O seguro auto da base didática cobre colisão, roubo e furto, terceiros e assistência com guincho. A cobertura de guincho deve ser apresentada como referência didática, não como regra contratual in...
+- Fonte KB-FRANQUIA-001 (Tabela didática de franquias): Guia de franquia. Para o produto auto no laboratório, a franquia de referência é R$ 1500.00 para colisão parcial. Vida não possui franquia na base mockada. Residencial usa R$ 800.00 como referência para danos elétricos....
+
+- Nenhuma ferramenta operacional adicional foi necessária.
+Fontes: KB-AUTO-COBERTURA-001, KB-FRANQUIA-001.
+Observação: conteúdo recuperado foi tratado como dado de apoio; decisões operacionais vieram de ferramentas mockadas.
+
+Trace:
+{
+  "user_input": "O seguro auto cobre guincho?",
+  "customer_id": "C001",
+  "route": "apolice_rag",
+  "confidence": 0.75,
+  "blocked": false,
+  "needs_human": false,
+  "question_for_retrieval": "cobertura franquia seguro auto guincho O seguro auto cobre guincho?",
+  "retrieved_context": {
+    "query": "cobertura franquia seguro auto guincho O seguro auto cobre guincho?",
+    "documents": [
+      {
+        "page_content": "Guia de cobertura auto. O seguro auto da base didática cobre colisão, roubo e furto, terceiros e assistência com guincho. A cobertura de guincho deve ser apresentada como referência didática, não como regra contratual individual. Para apólice real, consultar ferramenta de apólice.",
+        "metadata": {
+          "source_id": "KB-AUTO-COBERTURA-001",
+          "title": "Guia de cobertura auto",
+          "domain": "apolice",
+          "version": "2026-05"
+        }
+      },
+      {
+        "page_content": "Guia de franquia. Para o produto auto no laboratório, a franquia de referência é R$ 1500.00 para colisão parcial. Vida não possui franquia na base mockada. Residencial usa R$ 800.00 como referência para danos elétricos.",
+        "metadata": {
+          "source_id": "KB-FRANQUIA-001",
+          "title": "Tabela didática de franquias",
+          "domain": "apolice",
+          "version": "2026-05"
+        }
+      }
+    ],

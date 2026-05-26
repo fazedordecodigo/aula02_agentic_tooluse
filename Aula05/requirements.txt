@@ -1,0 +1,6 @@
+# Para rodar o gabarito puro e os testes offline: nenhuma dependência externa é obrigatória.
+# Para rodar as demos com LangChain e LangGraph:
+langchain>=1.0
+langchain-core>=1.0
+langchain-text-splitters>=1.0
+langgraph>=1.0
